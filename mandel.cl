@@ -5,9 +5,10 @@ __kernel void mandelbrot(__global float *pixel, __global const int XSIZE, __glob
   
     int id = get_global_id(0);
     int l_id = get_local_id(0);  
- 
-    c.real = (xleft + step * i);
-    c.imag = (ylower + step * j);
+    
+    
+    c.real = (xleft + step * (id%XSIZE));
+    c.imag = (ylower + step * ((int)id/YSIZE));
     z = c;
     while (z.real * z.real + z.imag * z.imag < 4) {
         temp.real = z.real * z.real - z.imag * z.imag + c.real;
@@ -18,6 +19,6 @@ __kernel void mandelbrot(__global float *pixel, __global const int XSIZE, __glob
             break;
         }
       }
-      pixel[j * XSIZE + i] = iter;
+      pixel[id] = iter;
 
 }
