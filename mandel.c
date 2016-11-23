@@ -151,11 +151,29 @@ void calculate(int* pixel) {
 }
 
 /* Set up and call mandelbrot kernel */
-void calculate_ocl(int* pixel /* Add any neccessary arguments */){
-
+void calculate_ocl(int* pixel, cl_context context, cl_command_queue queue){
+    int kSize = XSIZE*YSIZE*sizeof(float);
     // Allocate memory for result
-	
-	//err = clEnqueueWriteBuffer(q, pixels_device, CL_TRUE, 0, XSIZE*YSIZE*sizeof(float), pixel, 0, NULL, NULL);
+    cl_mem pixel_device = clCreateBuffer(context, CLMEM_READ_WRITE, kSize, NULL,&err);	
+    err = clEnqueueWriteBuffer(queue, pixels_device, CL_TRUE, 0, kSize, pixel, 0, NULL, NULL);
+    if(CL_SUCCESS != err) clerror("Couldn't write to device buffer \n");
+    
+    err = clSetKernelArg(kernel, 0, sizeof(cl_mem), pixel_device);
+    if(CL_SUCCESS != err) clerror("Couldn't set pointer as kernel argument \n");
+    
+    err = clSetKernelArg(kernel, 1, sizeof(const int), XSIZE);
+    if(CL_SUCCESS != err) clerror("Couldn't set size integer as kernel argument \n");
+    
+    err = clSetKernelArg(kernel, 2,sizeof(const int), YSIZE);
+    if(CL_SUCCESS != err) clerror("Couldn't set second size integer as kernel argument \n");
+    
+    const size_t g_ws = {XSIZE, YSIZE};
+    const size_t l_ws = {16,16};
+    err = clEnqueueNDRangeKernel(queue, kernel, 2, NULL, g_ws, l_ws, 0, NULL, NULL);
+    if(CL_SUCCESS != err) clerror("Couldn't set to queue and launch kernel \n");
+
+    err = clEnqueueReadBuffer(queue,pixel_device, CL_TRUE, 0, kSize, B 0, NULL, NULL);
+    if(CL_SUCCESS != err) clerror("Couldn't read from device buffer \n");
 	
 	// Set kernel arguments
 	
@@ -245,7 +263,7 @@ int main(int argc, char** argv) {
   
     /* Perform calculations on GPU */
     double start_gpu = walltime();
-    calculate_ocl(pixel_for_gpu);
+    calculate_ocl(pixel_for_gpu, context, q);
     double end_gpu = walltime();
   
     /* Compare execution times
